@@ -1,0 +1,43 @@
+name: Radar de Milhas Azul
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"   # a cada 3 horas (horário UTC)
+  workflow_dispatch:          # botão "Run workflow" para rodar na hora
+
+permissions:
+  contents: write
+
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Promoções (blogs)
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/promos.py
+
+      - name: Assentos-prêmio (Seats.aero)
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SEATS_AERO_KEY: ${{ secrets.SEATS_AERO_KEY }}
+        run: python scripts/awards.py
+
+      - name: Salvar dados para o painel
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "radar-bot@users.noreply.github.com"
+          git add docs/data
+          git diff --cached --quiet || git commit -m "dados $(date -u +%F_%H%M)"
+          git push
