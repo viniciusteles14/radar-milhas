@@ -44,16 +44,16 @@
   },
   "alertas_certeiros": [
     {
-      "nome": "Europa até 50 mil pontos",
+      "nome": "Europa até 100 mil pontos",
       "regiao": "Europa",
       "cabine": "qualquer",
-      "max_pontos": 50000
+      "max_pontos": 100000
     },
     {
-      "nome": "EUA até 40 mil pontos",
+      "nome": "EUA até 80 mil pontos",
       "regiao": "EUA",
       "cabine": "qualquer",
-      "max_pontos": 40000
+      "max_pontos": 80000
     },
     {
       "nome": "Executiva internacional até 120 mil",
