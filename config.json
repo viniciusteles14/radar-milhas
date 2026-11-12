@@ -4,7 +4,8 @@
       "https://pontospravoar.com/feed/",
       "https://passageirodeprimeira.com/feed/",
       "https://www.melhoresdestinos.com.br/feed",
-      "https://www.mestredasmilhas.com/feed"
+      "https://www.mestredasmilhas.com/feed",
+      "https://www.melhorescartoes.com.br/feed"
     ],
     "title_must_match": [
       "\\bazul\\b",
