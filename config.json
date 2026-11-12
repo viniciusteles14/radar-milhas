@@ -12,7 +12,11 @@
       "tudoazul"
     ],
     "max_alerts_per_run": 8,
-    "resumo_diario": true
+    "resumo_diario": true,
+    "telegram_reserva": {
+      "https://www.melhoresdestinos.com.br/feed": "melhoresdestinos",
+      "https://www.melhorescartoes.com.br/feed": "melhores_cartoes"
+    }
   },
   "awards": {
     "source": "azul",
