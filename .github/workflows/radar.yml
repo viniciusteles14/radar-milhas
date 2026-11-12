@@ -2,7 +2,7 @@ name: Radar de Milhas Azul
 
 on:
   schedule:
-    - cron: "17 */3 * * *"   # a cada 3 horas (horário UTC)
+    - cron: "17 * * * *"     # a cada 1 hora
   workflow_dispatch:          # botão "Run workflow" para rodar na hora
 
 permissions:
