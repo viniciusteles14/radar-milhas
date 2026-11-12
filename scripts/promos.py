@@ -7,7 +7,7 @@ import os
 import re
 import sys
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from html import unescape
 
@@ -150,19 +150,25 @@ def run(items=None, force_digest=False):
         return new
 
     hits = [i for i in new if i["match"]]
+    enviados = 0
     for it in hits[: cfg["max_alerts_per_run"]]:
         enviar_certeiro(it)
+        enviados += 1
     pending += [{"title": i["title"], "link": i["link"], "tags": i["tags"]} for i in new if not i["match"]]
 
     # resumo diário (por volta das 9h de Brasília = 12h UTC)
     hour = datetime.now(timezone.utc).hour
-    if pending and (force_digest or (cfg.get("resumo_diario", True) and 12 <= hour < 15)):
+    if pending and (force_digest or (cfg.get("resumo_diario", True) and hour == 12)):
         linhas = [f"📰 <b>Resumo do dia — Azul</b> ({len(pending)} novidades)\n"]
         for p in pending[:15]:
             tag = p["tags"][0] if p["tags"] else "•"
             linhas.append(f"{tag} <a href=\"{esc(p['link'])}\">{esc(p['title'])}</a>")
         telegram_send("\n".join(linhas))
+        enviados += 1
         pending = []
+    if not enviados and cfg.get("avisar_sem_novidades", True):
+        agora = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-3))).strftime("%H:%M")
+        telegram_send(f"✅ SEM NOVIDADES ({agora})")
     save_json("promos_digest.json", pending[-100:])
     print(f"[promos] {len(azul)} itens da Azul, {len(new)} novos, {len(hits)} certeiros")
     return new
