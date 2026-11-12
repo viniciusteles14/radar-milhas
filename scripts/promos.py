@@ -211,9 +211,10 @@ def run(items=None, force_digest=False):
         telegram_send("\n".join(linhas))
         enviados += 1
         pending = []
-    if not enviados and cfg.get("avisar_sem_novidades", True):
-        agora = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-3))).strftime("%H:%M")
-        telegram_send(f"✅ SEM NOVIDADES ({agora})")
+    agora = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-3)))
+    if not enviados and cfg.get("avisar_sem_novidades", True) and 7 <= agora.hour <= 22:
+        # SEM NOVIDADES só das 7h às 22h (Brasília); promoções certeiras saem a qualquer hora
+        telegram_send(f"✅ SEM NOVIDADES ({agora:%H:%M})")
     save_json("promos_digest.json", pending[-100:])
     print(f"[promos] {len(azul)} itens da Azul, {len(new)} novos, {len(hits)} certeiros")
     return new
