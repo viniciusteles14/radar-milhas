@@ -6,23 +6,72 @@
       "https://www.melhoresdestinos.com.br/feed",
       "https://www.mestredasmilhas.com/feed"
     ],
-    "title_must_match": ["\\bazul\\b", "tudoazul"],
-    "max_alerts_per_run": 8
+    "title_must_match": [
+      "\\bazul\\b",
+      "tudoazul"
+    ],
+    "max_alerts_per_run": 8,
+    "resumo_diario": true
   },
   "awards": {
     "source": "azul",
     "origin_region": "South America",
-    "destination_regions": ["North America", "Europe", "South America"],
+    "destination_regions": [
+      "North America",
+      "Europe",
+      "South America"
+    ],
     "days_ahead": 330,
     "brazil_airports_only_origin": true,
     "thresholds_points_one_way": {
-      "North America": { "economy": 45000, "business": 120000 },
-      "Europe":        { "economy": 55000, "business": 150000 },
-      "South America": { "economy": 8000,  "business": 40000 }
+      "North America": {
+        "economy": 45000,
+        "business": 120000
+      },
+      "Europe": {
+        "economy": 55000,
+        "business": 150000
+      },
+      "South America": {
+        "economy": 8000,
+        "business": 40000
+      }
     },
     "drop_vs_median_pct": 25,
     "min_history_points": 5,
     "realert_after_days": 7,
     "max_alerts_per_run": 10
-  }
+  },
+  "alertas_certeiros": [
+    {
+      "nome": "Europa até 50 mil pontos",
+      "regiao": "Europa",
+      "cabine": "qualquer",
+      "max_pontos": 50000
+    },
+    {
+      "nome": "EUA até 40 mil pontos",
+      "regiao": "EUA",
+      "cabine": "qualquer",
+      "max_pontos": 40000
+    },
+    {
+      "nome": "Executiva internacional até 120 mil",
+      "regiao": "Qualquer internacional",
+      "cabine": "executiva",
+      "max_pontos": 120000
+    },
+    {
+      "nome": "América do Sul até 15 mil",
+      "regiao": "América do Sul",
+      "cabine": "qualquer",
+      "max_pontos": 15000
+    },
+    {
+      "nome": "Nacional até 4 mil pontos",
+      "regiao": "Nacional",
+      "cabine": "qualquer",
+      "max_pontos": 4000
+    }
+  ]
 }
