@@ -1,0 +1,28 @@
+{
+  "promos": {
+    "feeds": [
+      "https://pontospravoar.com/feed/",
+      "https://passageirodeprimeira.com/feed/",
+      "https://www.melhoresdestinos.com.br/feed",
+      "https://www.mestredasmilhas.com/feed"
+    ],
+    "title_must_match": ["\\bazul\\b", "tudoazul"],
+    "max_alerts_per_run": 8
+  },
+  "awards": {
+    "source": "azul",
+    "origin_region": "South America",
+    "destination_regions": ["North America", "Europe", "South America"],
+    "days_ahead": 330,
+    "brazil_airports_only_origin": true,
+    "thresholds_points_one_way": {
+      "North America": { "economy": 45000, "business": 120000 },
+      "Europe":        { "economy": 55000, "business": 150000 },
+      "South America": { "economy": 8000,  "business": 40000 }
+    },
+    "drop_vs_median_pct": 25,
+    "min_history_points": 5,
+    "realert_after_days": 7,
+    "max_alerts_per_run": 10
+  }
+}

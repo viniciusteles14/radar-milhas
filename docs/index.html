@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar de Milhas Azul</title>
+<style>
+  :root{--bg:#f4f6fa;--card:#fff;--ink:#16213a;--mute:#6b7690;--line:#e3e7ef;--azul:#0a4bd6;--ok:#0f8a5f;--warn:#c2410c}
+  @media (prefers-color-scheme:dark){:root{--bg:#0d1322;--card:#151d30;--ink:#e8ecf6;--mute:#8d97b0;--line:#263049;--azul:#5b8cff;--ok:#34c48c;--warn:#ff8a4c}}
+  *{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--azul);color:#fff;padding:22px 20px 18px}
+  header h1{margin:0;font-size:22px}header p{margin:4px 0 0;opacity:.85;font-size:13px}
+  main{max-width:1100px;margin:0 auto;padding:16px}
+  nav{display:flex;gap:6px;margin:4px 0 14px;flex-wrap:wrap}
+  nav button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer;font:inherit}
+  nav button.on{background:var(--azul);color:#fff;border-color:var(--azul)}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .filters select,.filters input{padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit}
+  .grid{display:grid;gap:10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .card a{color:var(--azul);text-decoration:none;font-weight:600}
+  .meta{color:var(--mute);font-size:12.5px;margin-top:4px}
+  .tag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line);margin:6px 4px 0 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+  th{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.03em;cursor:pointer}
+  td.num{font-variant-numeric:tabular-nums;font-weight:600}
+  .good{color:var(--ok);font-weight:600}.hot{color:var(--warn);font-weight:700}
+  .empty{padding:30px;text-align:center;color:var(--mute)}
+  svg.spark{vertical-align:middle}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px}
+  .stat b{display:block;font-size:22px}.stat span{color:var(--mute);font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>✈️ Radar de Milhas Azul</h1>
+  <p id="upd">Carregando…</p>
+</header>
+<main>
+  <div class="stats" id="stats"></div>
+  <nav>
+    <button data-tab="awards" class="on">Assentos-prêmio</button>
+    <button data-tab="promos">Promoções</button>
+    <button data-tab="hist">Histórico de preços</button>
+  </nav>
+  <section id="tab-awards">
+    <div class="filters">
+      <select id="fRegion"><option value="">Todos destinos</option><option>North America</option><option>Europe</option><option>South America</option></select>
+      <select id="fCabin"><option value="">Todas cabines</option><option value="economy">Econômica</option><option value="premium">Premium</option><option value="business">Executiva</option></select>
+      <input id="fText" placeholder="Filtrar aeroporto (ex: LIS)">
+    </div>
+    <div id="awardsBox"></div>
+  </section>
+  <section id="tab-promos" hidden>
+    <div class="filters">
+      <select id="fTag"><option value="">Todas</option><option>🌎 Internacional</option><option>💸 Desconto no resgate</option><option>🔁 Bônus transferência</option><option>🚨 Alerta de passagem</option><option>🛒 Compra de pontos</option></select>
+    </div>
+    <div class="grid" id="promosBox"></div>
+  </section>
+  <section id="tab-hist" hidden>
+    <div class="filters"><input id="hText" placeholder="Filtrar rota (ex: VCP-LIS)"></div>
+    <div id="histBox"></div>
+  </section>
+</main>
+<script>
+const CAB={economy:"Econômica",premium:"Premium",business:"Executiva"};
+const REG={"North America":"América do Norte","Europe":"Europa","South America":"América do Sul"};
+const pts=n=>Math.round(n).toLocaleString("pt-BR");
+const dt=s=>s?new Date(s+(s.length===10?"T12:00:00":"")).toLocaleDateString("pt-BR"):"";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let A={offers:[],alerts:[]},P=[],H={},sortKey="points",sortDir=1;
+async function j(u,d){try{const r=await fetch(u+"?t="+Date.now());return r.ok?await r.json():d}catch(e){return d}}
+
+function spark(h,w=120,hgt=28){
+  if(!h||h.length<2)return"";const v=h.map(x=>x.min),mn=Math.min(...v),mx=Math.max(...v),r=mx-mn||1;
+  const p=v.map((y,i)=>`${(i/(v.length-1)*w).toFixed(1)},${(hgt-2-(y-mn)/r*(hgt-4)).toFixed(1)}`).join(" ");
+  return `<svg class="spark" width="${w}" height="${hgt}"><polyline points="${p}" fill="none" stroke="var(--azul)" stroke-width="1.8"/></svg>`;
+}
+function renderStats(){
+  const intl=A.offers.filter(o=>o.region!=="South America");
+  const bJ=intl.filter(o=>o.cabin==="business").sort((a,b)=>a.points-b.points)[0];
+  const bY=intl.filter(o=>o.cabin==="economy").sort((a,b)=>a.points-b.points)[0];
+  stats.innerHTML=[
+    [A.alerts.length,"alertas na última checagem"],
+    [bY?pts(bY.points):"—",bY?`menor econômica intl. (${bY.origin}→${bY.dest})`:"menor econômica intl."],
+    [bJ?pts(bJ.points):"—",bJ?`menor executiva intl. (${bJ.origin}→${bJ.dest})`:"menor executiva intl."],
+    [P.length,"promoções da Azul registradas"]
+  ].map(([b,s])=>`<div class="card stat"><b>${b}</b><span>${esc(s)}</span></div>`).join("");
+}
+function renderAwards(){
+  const r=fRegion.value,c=fCabin.value,t=fText.value.trim().toUpperCase();
+  let rows=A.offers.filter(o=>(!r||o.region===r)&&(!c||o.cabin===c)&&(!t||o.origin.includes(t)||o.dest.includes(t)));
+  rows.sort((a,b)=>(a[sortKey]>b[sortKey]?1:a[sortKey]<b[sortKey]?-1:0)*sortDir);
+  if(!rows.length){awardsBox.innerHTML=`<div class="card empty">Nenhuma oferta ainda. O monitor de rotas precisa da chave do Seats.aero (veja o README).</div>`;return}
+  awardsBox.innerHTML=`<table><thead><tr>
+   <th data-k="origin">Rota</th><th data-k="cabin">Cabine</th><th data-k="points">Pontos (ida)</th><th data-k="median">Mediana</th><th data-k="date">Data do voo</th><th>Tendência</th></tr></thead><tbody>`+
+   rows.slice(0,400).map(o=>{
+     const k=`${o.origin}-${o.dest}-${o.cabin}`,disc=o.median?1-o.points/o.median:0;
+     const cls=(o.reasons&&o.reasons.length)?"hot":disc>0.1?"good":"";
+     return `<tr><td><b>${o.origin} → ${o.dest}</b><div class="meta">${REG[o.region]||o.region}${o.direct?" · direto":""}</div></td>
+     <td>${CAB[o.cabin]}</td><td class="num ${cls}">${pts(o.points)}</td>
+     <td class="num">${o.median?pts(o.median):"—"}${disc>0.05?`<div class="meta good">−${Math.round(disc*100)}%</div>`:""}</td>
+     <td>${dt(o.date)}</td><td>${spark(H[k])}</td></tr>`}).join("")+`</tbody></table>`;
+  awardsBox.querySelectorAll("th[data-k]").forEach(th=>th.onclick=()=>{const k=th.dataset.k;sortDir=sortKey===k?-sortDir:1;sortKey=k;renderAwards()});
+}
+function renderPromos(){
+  const t=fTag.value,rows=P.filter(p=>!t||(p.tags||[]).includes(t));
+  promosBox.innerHTML=rows.length?rows.slice(0,150).map(p=>`<div class="card"><a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.title)}</a>
+   <div class="meta">${esc(p.source)} · ${new Date(p.published).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})}</div>
+   <div>${(p.tags||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join("")}</div></div>`).join("")
+   :`<div class="card empty">Nenhuma promoção registrada ainda.</div>`;
+}
+function renderHist(){
+  const t=hText.value.trim().toUpperCase();
+  const keys=Object.keys(H).filter(k=>!t||k.toUpperCase().includes(t)).filter(k=>H[k].length>1);
+  if(!keys.length){histBox.innerHTML=`<div class="card empty">O histórico aparece depois de alguns dias de monitoramento.</div>`;return}
+  histBox.innerHTML=`<table><thead><tr><th>Rota</th><th>Cabine</th><th>Hoje</th><th>Mín. visto</th><th>Máx. visto</th><th>Dias</th><th>Gráfico</th></tr></thead><tbody>`+
+   keys.slice(0,300).map(k=>{const h=H[k],[o,d,c]=k.split("-"),v=h.map(x=>x.min);
+    return `<tr><td><b>${o} → ${d}</b></td><td>${CAB[c]||c}</td><td class="num">${pts(v.at(-1))}</td><td class="num good">${pts(Math.min(...v))}</td><td class="num">${pts(Math.max(...v))}</td><td>${h.length}</td><td>${spark(h,180,34)}</td></tr>`}).join("")+`</tbody></table>`;
+}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x===b));
+  ["awards","promos","hist"].forEach(t=>document.getElementById("tab-"+t).hidden=t!==b.dataset.tab);
+});
+[fRegion,fCabin].forEach(e=>e.onchange=renderAwards);fText.oninput=renderAwards;fTag.onchange=renderPromos;hText.oninput=renderHist;
+(async()=>{
+  [A,P,H]=await Promise.all([j("data/awards.json",{offers:[],alerts:[]}),j("data/promos.json",[]),j("data/history.json",{})]);
+  upd.textContent=A.updated?`Última checagem de rotas: ${new Date(A.updated).toLocaleString("pt-BR")}`:"Aguardando primeira checagem de rotas";
+  renderStats();renderAwards();renderPromos();renderHist();
+})();
+</script>
+</body>
+</html>
