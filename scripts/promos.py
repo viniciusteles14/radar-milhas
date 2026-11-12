@@ -213,7 +213,7 @@ def run(items=None, force_digest=False):
         pending = []
     if not enviados and cfg.get("avisar_sem_novidades", True):
         agora = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-3))).strftime("%H:%M")
-        telegram_send(f"✅ SEM NOVIDADES ({agora})")
+        telegram_send(f"✅ SEM NOVIDADES ({agora})", privado=True)
     save_json("promos_digest.json", pending[-100:])
     print(f"[promos] {len(azul)} itens da Azul, {len(new)} novos, {len(hits)} certeiros")
     return new
