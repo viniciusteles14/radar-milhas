@@ -41,12 +41,17 @@ def http_get(url, headers=None, timeout=30):
         return r.read()
 
 
-def telegram_send(text, preview=False):
-    """Envia mensagem pro Telegram. Sem token configurado, só imprime (modo teste)."""
+def telegram_send(text, preview=False, privado=False):
+    """Envia mensagem pro Telegram. privado=True manda só pro dono (TELEGRAM_CHAT_ID);
+    senão vai pro canal definido em config.json (telegram_canal), se houver.
+    Sem token configurado, só imprime (modo teste)."""
     import re
     import urllib.error
     token = (os.environ.get("TELEGRAM_TOKEN") or "").strip()
     chat = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
+    canal = str(load_config().get("telegram_canal") or "").strip()
+    if canal and not privado:
+        chat = canal
     if not token or not chat:
         print("---- [Telegram simulado] ----\n" + text + "\n-----------------------------")
         return
