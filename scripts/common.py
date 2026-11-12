@@ -43,20 +43,41 @@ def http_get(url, headers=None, timeout=30):
 
 def telegram_send(text, preview=False):
     """Envia mensagem pro Telegram. Sem token configurado, só imprime (modo teste)."""
-    token = os.environ.get("TELEGRAM_TOKEN")
-    chat = os.environ.get("TELEGRAM_CHAT_ID")
+    import re
+    import urllib.error
+    token = (os.environ.get("TELEGRAM_TOKEN") or "").strip()
+    chat = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
     if not token or not chat:
         print("---- [Telegram simulado] ----\n" + text + "\n-----------------------------")
         return
-    data = urllib.parse.urlencode({
+
+    def post(payload):
+        req = urllib.request.Request(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            data=urllib.parse.urlencode(payload).encode())
+        urllib.request.urlopen(req, timeout=30).read()
+
+    payload = {
         "chat_id": chat,
         "text": text[:4000],
         "parse_mode": "HTML",
         "disable_web_page_preview": "false" if preview else "true",
-    }).encode()
-    req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=data)
+    }
     try:
-        urllib.request.urlopen(req, timeout=30).read()
+        post(payload)
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", "ignore")
+        print(f"Falha ao enviar Telegram ({e.code}): {detail}")
+        if e.code == 400:  # tenta de novo em texto puro (sem formatação)
+            plain = re.sub(r"<[^>]+>", "", text)
+            plain = plain.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+            payload.pop("parse_mode")
+            payload["text"] = plain[:4000]
+            try:
+                post(payload)
+                print("Reenviado em texto puro: OK")
+            except urllib.error.HTTPError as e2:
+                print(f"Falha de novo ({e2.code}): {e2.read().decode('utf-8', 'ignore')}")
     except Exception as e:  # não derruba o monitor por falha de envio
         print("Falha ao enviar Telegram:", e)
 
