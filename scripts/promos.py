@@ -93,14 +93,57 @@ def bate_regra(item, regras):
     return None
 
 
+def parse_telegram(html, canal):
+    """Lê a página pública t.me/s/<canal> e devolve itens no mesmo formato do RSS."""
+    items = []
+    for bloco in html.split("tgme_widget_message_wrap")[1:]:
+        m_txt = re.search(r'class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>', bloco, re.S)
+        if not m_txt:
+            continue
+        bruto = m_txt.group(1)
+        linhas = [re.sub(r"https?://\S+", "", strip_html(x)).strip(" 👉🏼🔗:-") for x in re.split(r"<br\s*/?>", bruto)]
+        linhas = [x for x in linhas if len(re.sub(r"\W", "", x)) >= 3]
+        if not linhas:
+            continue
+        title = max(linhas, key=len)[:200]  # a linha mais longa costuma ser a manchete
+        resumo = " ".join(x for x in linhas if x != title)[:400]
+        links = [u for u in re.findall(r'href="(https?://[^"]+)"', bruto) if "t.me/" not in u and "telegram.org" not in u]
+        post = re.search(r'data-post="([^"]+)"', bloco)
+        link = links[0] if links else (f"https://t.me/{post.group(1)}" if post else "")
+        t = re.search(r'<time datetime="([^"]+)"', bloco)
+        items.append({"title": title, "link": link, "summary": resumo, "published": t.group(1) if t else now_iso(),
+                      "source": f"t.me/{canal}"})
+    return items
+
+
 def fetch_all(cfg):
     out = []
+    reserva = cfg.get("telegram_reserva", {})
     for url in cfg["feeds"]:
         try:
-            out += parse_feed(http_get(url), url)
+            out += parse_feed(http_get(url, timeout=15), url)
         except Exception as e:
-            print(f"[promos] falha em {url}: {e}")
+            canal = reserva.get(url)
+            if not canal:
+                print(f"[promos] falha em {url}: {e}")
+                continue
+            try:
+                itens = parse_telegram(http_get(f"https://t.me/s/{canal}", timeout=15).decode("utf-8", "ignore"), canal)
+                out += itens
+                print(f"[promos] {url} falhou ({e}); usei o Telegram t.me/{canal}: {len(itens)} posts")
+            except Exception as e2:
+                print(f"[promos] falha em {url} e no Telegram {canal}: {e2}")
+    for canal in cfg.get("telegram_canais", []):
+        try:
+            out += parse_telegram(http_get(f"https://t.me/s/{canal}", timeout=15).decode("utf-8", "ignore"), canal)
+        except Exception as e:
+            print(f"[promos] falha no Telegram {canal}: {e}")
     return out
+
+
+def chave_titulo(title):
+    t = re.sub(r"[^a-z0-9 ]", "", unescape(title).lower())
+    return "t:" + re.sub(r"\s+", " ", t).strip()[:70]
 
 
 def run(items=None, force_digest=False):
@@ -120,9 +163,11 @@ def run(items=None, force_digest=False):
 
     new = []
     for it in azul:
-        if it["link"] in seen:
+        tk = chave_titulo(it["title"])
+        if it["link"] in seen or tk in seen:
             continue
         seen.add(it["link"])
+        seen.add(tk)
         it.update(analisar(it))
         it["international"] = it["regiao"] not in (None, "Nacional")
         it["found_at"] = now_iso()
@@ -134,7 +179,7 @@ def run(items=None, force_digest=False):
 
     db.sort(key=lambda i: i["published"], reverse=True)
     save_json("promos.json", db[:300])
-    save_json("promos_seen.json", sorted(seen)[-3000:])
+    save_json("promos_seen.json", sorted(seen)[-6000:])
 
     if first_run:
         hits = [i for i in new if i["match"]]
